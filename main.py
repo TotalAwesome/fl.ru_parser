@@ -74,36 +74,42 @@ def send_tg(msg, chat_id):
 def parse_fl():
     log('=  '*20)
     log('Проверка новых проектов...')
-    result = requests.get(f'https://www.fl.ru/rss/all.xml?category={category}')
-    parsed = feedparser.parse(result.text)
-    log(f'Всего получено {cyan}{len(parsed["entries"])}{reset} проеков')
-    for project in parsed['entries']:
-        
-        title = project['title']
-        if 'Бюджет' in title:
-            money = re.search('\(\D*(\d+)',title).group(1)
-            title = re.search('(.*)\(Б', title).group(1)
-        else:
-            money = 0
-        text = project['summary_detail']['value']
-        link = project['link']
-        
-        success = False
-        for kw in keywords:
-            if (
-                kw in title.lower() or
-                kw in text.lower()
-            ):
-                success = True
+    result = None
+    try:
+        result = requests.get(f'https://www.fl.ru/rss/all.xml?category={category}')
+    except:
+        log('Error')
+        print(Exception)
+    if result!= None:
+        parsed = feedparser.parse(result.text)
+        log(f'Всего получено {cyan}{len(parsed["entries"])}{reset} проеков')
+        for project in parsed['entries']:
+            
+            title = project['title']
+            if 'Бюджет' in title:
+                money = re.search('\(\D*(\d+)',title).group(1)
+                title = re.search('(.*)\(Б', title).group(1)
+            else:
+                money = 0
+            text = project['summary_detail']['value']
+            link = project['link']
+            
+            success = False
+            for kw in keywords:
+                if (
+                    kw in title.lower() or
+                    kw in text.lower()
+                ):
+                    success = True
 
-        if success:
-            msg = f"<a href='{link}'>{title}</a>\n<b>Бюджет: {money}</b>\n<i>{text}</i>"
-            if DB.link_new(link):
-                log(
-                    f'{magenta}Новый проект:{reset} {title} ({green}Бюджет: {money}{reset})'
-                )
-                send_tg(msg,chat_id)
-                DB.add_link(link)
+            if success:
+                msg = f"<a href='{link}'>{title}</a>\n<b>Бюджет: {money}</b>\n<i>{text}</i>"
+                if DB.link_new(link):
+                    log(
+                        f'{magenta}Новый проект:{reset} {title} ({green}Бюджет: {money}{reset})'
+                    )
+                    send_tg(msg,chat_id)
+                    DB.add_link(link)
 
 DB = db()
 
